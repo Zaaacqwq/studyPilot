@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StudyPilot
 
-## Getting Started
+Outline-first studying with branchable AI conversations.
+Drop in your course notes → AI generates a hierarchical outline → ask focused
+questions on any node by "pulling a branch" → merge the answer back into the
+outline as a summary. Built so long ChatGPT chats can't lose context anymore.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router, TS, Tailwind)
+- Supabase (Postgres + Auth + Storage)
+- AI providers: Claude API, OpenAI API, OpenCode API (wired in Phase 1.5)
+
+## Phase 1 setup
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com), create a new project.
+2. Wait ~2 min for it to provision.
+3. In **Settings → API**, copy:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+
+### 2. Configure env
+
+```bash
+cp .env.local.example .env.local
+# fill in the Supabase values
+```
+
+### 3. Run the migration
+
+Open the SQL editor in your Supabase dashboard, paste the contents of
+`supabase/migrations/0001_init.sql`, and run.
+
+(Or via Supabase CLI: `supabase db push` after linking the project.)
+
+### 4. Configure Auth
+
+In **Authentication → URL Configuration**:
+
+- **Site URL**: `http://localhost:3000`
+- **Redirect URLs**: add `http://localhost:3000/auth/callback`
+
+In **Authentication → Providers → Email**: ensure "Enable Email provider" is on
+and "Confirm email" / magic links are enabled (the default).
+
+### 5. Run it
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000 — you'll be redirected to `/login`. Enter your
+email, click the link in your inbox, and you're in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project layout
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  login/              magic-link form + server action
+  auth/callback/      OTP exchange route
+  auth/signout/       sign-out route
+  page.tsx            authenticated landing (will become course list in Phase 2)
+lib/
+  supabase/           server / client / middleware
+  db/types.ts         row types (replace with `supabase gen types` later)
+  providers/          AI provider abstraction (Phase 1.5)
+middleware.ts         session refresh + auth guard
+supabase/migrations/  SQL schema + RLS
+```
